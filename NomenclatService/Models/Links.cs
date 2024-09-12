@@ -10,10 +10,10 @@ namespace NomenklatService.Models
     {
         public int Id { get; set; }
 
-        public int NomenklatureId { get; set; }
+        public int? NomenklatureId { get; set; }
 
-        public int ParentId { get; set; }
+        public int? ParentId { get; set; }
 
-        public int Kol { get; set; }
+        public int Count { get; set; }
     }
 }

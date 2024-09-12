@@ -2,6 +2,7 @@
 using NLog;
 using NomenklatService.DataContext;
 using NomenklatService.Models;
+using System.Data;
 using System.Text.Json;
 
 namespace NomenklatService.Controllers
@@ -10,7 +11,7 @@ namespace NomenklatService.Controllers
     [Route("api/nomenklatures")]
     public class NomenclatLinkController : ControllerBase
     {
-        private static Logger _logger = LogManager.GetLogger("sample");
+        private static Logger _logger = LogManager.GetCurrentClassLogger();
 
         [HttpGet]
         [Route("")]
@@ -67,10 +68,17 @@ namespace NomenklatService.Controllers
             {
                 using (NomenklatContext db = new())
                 {
-                    Nomenklature origin = (Nomenklature)db.Nomenklature.Where(x => x.Id == id);
-                    origin.Price = price;
-                    db.SaveChanges();
-                    _logger.Info($"The nomenclature id = {id} was updated successfully.");
+                    Nomenklature origin = db.Nomenklature.FirstOrDefault(x => x.Id == id);
+                    if (origin != null)
+                    {
+                        origin.Price = price;
+                        db.SaveChanges();
+                        _logger.Info($"The nomenclature id = {id} was updated successfully.");
+                    }
+                    else
+                    {
+                        throw new Exception();
+                    }
                 }
             }
             catch (Exception ex)
@@ -88,10 +96,17 @@ namespace NomenklatService.Controllers
             {
                 using (NomenklatContext db = new())
                 {
-                    Nomenklature origin = (Nomenklature)db.Nomenklature.Where(x => x.Id == id);
-                    db.Nomenklature.Remove(origin);
-                    db.SaveChanges();
-                    _logger.Info($"The nomenclature id = {id} was deleted successfully.");
+                    Nomenklature origin = db.Nomenklature.FirstOrDefault(x => x.Id == id);
+                    if (origin != null)
+                    {
+                        db.Nomenklature.Remove(origin);
+                        db.SaveChanges();
+                        _logger.Info($"The nomenclature id = {id} was deleted successfully.");
+                    }
+                    else
+                    {
+                        throw new Exception();
+                    }
                 }
             }
             catch (Exception ex)
@@ -108,11 +123,20 @@ namespace NomenklatService.Controllers
             {
                 using (NomenklatContext db = new())
                 {
-                    Links link = new() { ParentId = parentId, NomenklatureId = nomenklatureId, Kol = count };
+                    Nomenklature parent = db.Nomenklature.FirstOrDefault(x => x.Id == parentId);
+                    Nomenklature numenclature = db.Nomenklature.FirstOrDefault(x => x.Id == nomenklatureId);
 
-                    db.Links.Add(link);
-                    db.SaveChanges();
-                    _logger.Info($"The link between nomenclature's ids {parentId} and {nomenklatureId} was saved successfully.");
+                    if (parent != null && numenclature != null)
+                    {
+                        Links link = new() { ParentId = parentId, NomenklatureId = nomenklatureId, Count = count };
+                        db.Links.Add(link);
+                        db.SaveChanges();
+                        _logger.Info($"The link between nomenclature's ids {parentId} and {nomenklatureId} was saved successfully.");
+                    }
+                    else
+                    {
+                        throw new Exception();
+                    }
                 }
             }
             catch (Exception ex)
@@ -129,10 +153,18 @@ namespace NomenklatService.Controllers
             {
                 using (NomenklatContext db = new())
                 {
-                    Links origin = (Links)db.Links.Where(x => x.Id == id);
-                    db.Links.Remove(origin);
-                    db.SaveChanges();
-                    _logger.Info($"The link between nomenclature's ids {origin.ParentId} and {origin.NomenklatureId} was saved successfully.");
+                    Links link = db.Links.FirstOrDefault(x => x.Id == id); 
+
+                    if (link != null)
+                    {
+                        db.Links.Remove(link);
+                        db.SaveChanges();
+                        _logger.Info($"The link between nomenclature's ids {link.ParentId} and {link.NomenklatureId} was saved successfully.");
+                    }
+                    else
+                    {
+                        throw new Exception();
+                    }
                 }
             }
             catch (Exception ex)
