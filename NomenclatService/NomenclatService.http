@@ -1,0 +1,6 @@
+@NomenclatService_HostAddress = http://localhost:5177
+
+GET {{NomenclatService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
