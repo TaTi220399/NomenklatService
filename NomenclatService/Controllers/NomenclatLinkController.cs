@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using NLog;
+using NomenclatService.Models;
 using NomenklatService.DataContext;
 using NomenklatService.Models;
 using System.Data;
@@ -23,11 +24,6 @@ namespace NomenklatService.Controllers
                 using (NomenklatContext db = new())
                 {
                     nomenklatures = db.Nomenklature.OrderBy(x => x.Id).ToList();
-                    Console.WriteLine("Nomenklatures list:");
-                    foreach (var n in nomenklatures)
-                    {
-                        Console.WriteLine($"{n.Id}. {n.Name} - {n.Price}");
-                    }
                     _logger.Info("The nomenklatures have been received.");
                 }
                 return JsonSerializer.Serialize(nomenklatures);
@@ -35,6 +31,55 @@ namespace NomenklatService.Controllers
             catch (Exception ex)
             {
                 _logger.Error("Can't to get nomenklatures.");
+                return string.Empty;
+            }
+        }
+
+        [HttpGet]
+        [Route("{id}")]
+        public string GetTotalProducts(int id)
+        {
+            try
+            {
+                List<NomenklatureTotal> nomenclatureTotals = new();
+                using (NomenklatContext db = new())
+                {
+                    Nomenklature parent = db.Nomenklature.FirstOrDefault(x => x.Id == id);
+                    List<Links> links = db.Links.Where(x => x.ParentId == id).OrderByDescending(x => x.NomenklatureId).ToList();
+                    foreach (Links link in links)
+                    {
+                        NomenklatureTotal total = new NomenklatureTotal();
+                        Nomenklature nomenklature = db.Nomenklature.FirstOrDefault(x => x.Id == link.NomenklatureId);
+                        total.Product = nomenklature.Name;
+                        total.Price = nomenklature.Price;
+                        total.Count = link.Count;
+
+                        int totalOne;
+                        if (link.ParentId == null)
+                        {
+                            totalOne = link.Count * nomenklature.Price;
+                        }
+                        else
+                        {
+                            totalOne = link.Count * (nomenklature.Price + nomenclatureTotals.Select(x => x.TotalPrice).ToArray().Sum());
+                        }
+
+                        total.TotalPrice = totalOne;
+                        nomenclatureTotals.Add(total);
+                    }
+
+                    int parentCount = db.Links.FirstOrDefault(x => x.NomenklatureId == id).Count;
+                    nomenclatureTotals.Add(new NomenklatureTotal() { Product = parent.Name, Count = parentCount, Price = parent.Price, TotalPrice = parent.Price + nomenclatureTotals.Select(x => x.TotalPrice).ToArray().Sum() });
+
+                    _logger.Info("The nomenklature's total price have been received.");
+                }
+
+
+                return JsonSerializer.Serialize(nomenclatureTotals);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Can't to get the nomenklature's total price.");
                 return string.Empty;
             }
         }
@@ -117,7 +162,7 @@ namespace NomenklatService.Controllers
 
         [HttpPost]
         [Route("link")]
-        public void CreateLink(int parentId, int nomenklatureId, int count)
+        public void CreateLink(int? parentId, int? nomenklatureId, int count)
         {
             try
             {
@@ -126,7 +171,7 @@ namespace NomenklatService.Controllers
                     Nomenklature parent = db.Nomenklature.FirstOrDefault(x => x.Id == parentId);
                     Nomenklature numenclature = db.Nomenklature.FirstOrDefault(x => x.Id == nomenklatureId);
 
-                    if (parent != null && numenclature != null)
+                    if (parent != null || numenclature != null)
                     {
                         Links link = new() { ParentId = parentId, NomenklatureId = nomenklatureId, Count = count };
                         db.Links.Add(link);
